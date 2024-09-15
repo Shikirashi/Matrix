@@ -1,4 +1,3 @@
-using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,10 +13,15 @@ public class MatrixScript : MonoBehaviour {
 	GameObject cellPrefab;
 	[SerializeField]
 	public int[,] matrix;
+	[SerializeField]
+	ErrorPopup popup;
+	string errorMsg;
+	bool emptyCell;
 	void Start() {
 		cellContainer = transform.GetChild(1).GetComponent<GridLayoutGroup>();
 		rowInput = transform.GetChild(0).GetChild(0).GetComponent<TMP_InputField>();
 		colInput = transform.GetChild(0).GetChild(1).GetComponent<TMP_InputField>();
+		emptyCell = true;
 		RecalculateGrid();
 	}
 
@@ -32,7 +36,9 @@ public class MatrixScript : MonoBehaviour {
 			//Debug.Log("Row is " + row);
 		}
 		else {
-			Debug.LogError("Can't parse row");
+			errorMsg = "Can't parse row";
+			Debug.LogError(errorMsg);
+			popup.DisplayError(errorMsg);
 			return;
 		}
 		if (int.TryParse(colInput.text, out col)) {
@@ -41,15 +47,49 @@ public class MatrixScript : MonoBehaviour {
 			//Debug.Log("Column is " + col);
 		}
 		else {
-			Debug.LogError("Can't parse column");
+			errorMsg = "Can't parse column";
+			Debug.LogError(errorMsg);
+			popup.DisplayError(errorMsg);
 			return;
 		}
-		//StartCoroutine(RefreshGrid());
+		PurgeMatrix();
+		CheckEmpty();
+	}
+
+	void CheckEmpty() {
+		for (int i = 0; i < cellContainer.transform.childCount; i++) {
+			if (!int.TryParse(cellContainer.transform.GetChild(i).transform.GetChild(0).GetComponent<TMP_InputField>().text, out input)) {
+				errorMsg = "Empty cell at " + transform.name + " " + cellContainer.transform.GetChild(i).name;
+				Debug.LogError(errorMsg);
+				emptyCell = true;
+				return;
+			}
+		}
+		emptyCell = false;
+		matrix = new int[row, col];
+		int matrixIndex = 0;
+		for (int i = 0; i < row; i++) {
+			for (int j = 0; j < col; j++) {
+				matrix[i, j] = int.Parse(cellContainer.transform.GetChild(matrixIndex).transform.GetChild(0).GetComponent<TMP_InputField>().text);
+				matrixIndex++;
+			}
+		}
+	}
+
+	public bool isEmptyCell() {
+		for (int i = 0; i < cellContainer.transform.childCount; i++) {
+			if (!int.TryParse(cellContainer.transform.GetChild(i).transform.GetChild(0).GetComponent<TMP_InputField>().text, out input)) {
+				errorMsg = "Empty cell at " + transform.name + " " + cellContainer.transform.GetChild(i).name;
+				Debug.LogError(errorMsg);
+				emptyCell = true;
+			}
+		}
+		return emptyCell;
+	}
+
+	void PurgeMatrix() {
 		if (cellContainer.transform.childCount != (row * col)) {
 			Debug.Log(transform.name + " purging existing cells");
-			/*for (int i = cellContainer.transform.childCount - 1; i >= 0; i--) {
-				Destroy(cellContainer.transform.GetChild(0).gameObject);
-			}*/
 			Destroy(cellContainer.gameObject);
 			cellContainer = new GameObject("cellContainer").AddComponent<GridLayoutGroup>();
 			cellContainer.cellSize = new Vector2(128, 128);
@@ -65,62 +105,22 @@ public class MatrixScript : MonoBehaviour {
 				cell.name = transform.name + "_" + (cellContainer.transform.childCount);
 			}
 		}
-		for (int i = 0; i < cellContainer.transform.childCount; i++) {
-			if (!int.TryParse(cellContainer.transform.GetChild(i).transform.GetChild(0).GetComponent<TMP_InputField>().text, out input)) {
-				//Debug.LogError("There is an empty cell");
-				return;
-			}
-		}
-		matrix = new int[row, col];
-		int matrixIndex = 0;
-		for (int i = 0; i < row; i++) {
-			for (int j = 0; j < col; j++) {
-				matrix[i, j] = int.Parse(cellContainer.transform.GetChild(matrixIndex).transform.GetChild(0).GetComponent<TMP_InputField>().text);
-				matrixIndex++;
-				//Debug.Log(matrix[i, j]);
-			}
-		}
 	}
 
 	public void InsertMatrix(int row, int col, int[,] matrix) {
 		this.matrix = matrix;
+		this.row = row;
+		this.col = col;
+		rowInput.text = row.ToString();
+		colInput.text = col.ToString();
 		cellContainer.constraintCount = col;
-		if (cellContainer.transform.childCount < row * col) {
-			while (cellContainer.transform.childCount < (row * col)) {
-				GameObject cell = Instantiate(cellPrefab, cellContainer.transform);
-			}
-		}
+		PurgeMatrix();
 		int matrixIndex = 0;
 		for (int i = 0; i < row; i++) {
 			for (int j = 0; j < col; j++) {
-				matrix[i, j] = int.Parse(cellContainer.transform.GetChild(matrixIndex).transform.GetChild(0).GetComponent<TMP_InputField>().text);
+				cellContainer.transform.GetChild(matrixIndex).transform.GetChild(0).GetComponent<TMP_InputField>().text = matrix[i, j].ToString();
 				matrixIndex++;
-				//Debug.Log(matrix[i, j]);
 			}
-		}
-	}
-
-	IEnumerator RefreshGrid() {
-		if (cellContainer.transform.childCount != (row * col)) {
-			Debug.Log(transform.name + " purging existing cells");
-			for (int i = 0; i < cellContainer.transform.childCount; i++) {
-				//Debug.Log(cellContainer.transform.GetChild(0).name);
-				Destroy(cellContainer.transform.GetChild(0).gameObject);
-				yield return new WaitForSeconds(2);
-			}
-			while (cellContainer.transform.childCount - 1 < (row * col)) {
-				GameObject cell = Instantiate(cellPrefab, cellContainer.transform);
-				cell.name = transform.name + "_" + (cellContainer.transform.childCount - 1);
-				yield return new WaitForSeconds(2);
-			}
-			/*if (cellContainer.transform.childCount - 1 == (row * col)) {
-				Debug.Log(transform.name + " count is: " + (cellContainer.transform.childCount - 1));
-				Debug.Log(transform.name + " rowXcol is: " + (row * col));
-			}
-			else {
-				Debug.Log(transform.name + " count is: " + (cellContainer.transform.childCount - 1));
-				Debug.Log(transform.name + " rowXcol is: " + (row * col));
-			}*/
 		}
 	}
 
