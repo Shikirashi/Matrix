@@ -126,23 +126,25 @@ public class MatrixCalculator : MonoBehaviour {
 			}
 			else if (dropdownOperation.value == 1) {
 				//multiply
-				if (dropdownA.value == 0) {
-					//A to B
-					if (colA != rowB) {
+				if (colA != rowB) {
+					if (dropdownA.value == 0) {
 						errorMsg = "Column A and row B are not the same length!";
-						Debug.LogError(errorMsg);
-						popup.DisplayError(errorMsg);
-						return;
 					}
-				}
-				else {
-					//B to A
-					if (colB != rowA) {
+					else {
 						errorMsg = "Column B and row A are not the same length!";
-						Debug.LogError(errorMsg);
-						popup.DisplayError(errorMsg);
-						return;
 					}
+					Debug.LogError(errorMsg);
+					popup.DisplayError(errorMsg);
+					return;
+				}
+			}
+			else if (dropdownOperation.value == 3) {
+				//subtraction
+				if ((rowA != rowB) && (colA != colB)) {
+					errorMsg = "The matrix sizes are not the same!";
+					Debug.LogError(errorMsg);
+					popup.DisplayError(errorMsg);
+					return;
 				}
 			}
 			if (!matA.isEmptyCell() && !matB.isEmptyCell()) {
@@ -169,7 +171,11 @@ public class MatrixCalculator : MonoBehaviour {
 	public void CalculateDeterminant() {
 		int result = 0;
 		if (!matA.isEmptyCell()) {
-			if (rowA == 2 && colA == 2) {
+			if (rowA == 1 && colA == 1) {
+				//1x1 matrix
+				result = matrixA[0, 0];
+			}
+			else if (rowA == 2 && colA == 2) {
 				//2x2 matrix
 				result = (matrixA[0, 0] * matrixA[1, 1]) - (matrixA[1, 0] * matrixA[0, 1]);
 			}
@@ -236,7 +242,7 @@ public class MatrixCalculator : MonoBehaviour {
 				popup.DisplayError(errorMsg);
 			}
 		}
-		else {
+		else if (operation == 1) {
 			//A x B
 			rowC = A.GetLength(0);
 			colC = B.GetLength(1);
@@ -248,6 +254,24 @@ public class MatrixCalculator : MonoBehaviour {
 						matrixC[i, j] += A[i, k] * B[k, j];
 					}
 				}
+			}
+		}
+		else if (operation == 3) {
+			//A - B
+			if ((A.GetLength(0) == B.GetLength(0)) && (A.GetLength(1) == B.GetLength(1))) {
+				rowC = A.GetLength(0);
+				colC = A.GetLength(1);
+				matrixC = new int[rowC, colC];
+				for (int i = 0; i < matrixC.GetLength(0); i++) {
+					for (int j = 0; j < matrixC.GetLength(1); j++) {
+						matrixC[i, j] = A[i, j] + B[i, j];
+					}
+				}
+			}
+			else {
+				errorMsg = "The matrix sizes are not the same";
+				Debug.LogError(errorMsg);
+				popup.DisplayError(errorMsg);
 			}
 		}
 		//calculation finished, insert matrix
